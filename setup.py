@@ -1,28 +1,37 @@
 from setuptools import setup
-from torch.utils.cpp_extension import BuildExtension, CUDAExtension
+from torch.utils.cpp_extension import BuildExtension, CUDAExtension, library_paths
+import os
+
+torch_lib_path = library_paths()[0]
 
 setup(
-    name='custom_cutlass_conv',
+    name='custom_conv_cuda',
     ext_modules=[
         CUDAExtension(
-            'custom_cutlass_conv',
-            ['custom_conv.cu'],
-            include_dirs=[
-                '/home/lhc/codes/hw2/cutlass/include/',
-            ],
+            name='custom_conv_cuda',
+            sources=['custom_conv.cpp'],
             extra_compile_args={
-                'cxx': ['-O3'],
+                'cxx': [
+                    '-O3',
+                    '-std=c++17',
+                    '-fpermissive',
+                    '-I/home/lhc/codes/hw2/cutlass/include',
+                    '-I/home/lhc/codes/hw2/cutlass/tools/util/include'
+                ],
                 'nvcc': [
                     '-O3',
-                    '--gpu-architecture=compute_75',  # Adjust for your GPU
-                    '--generate-line-info',
-                    '-U__CUDA_NO_HALF_OPERATORS__',
-                    '-U__CUDA_NO_HALF_CONVERSIONS__',
-                    '--expt-relaxed-constexpr',
-                    '--expt-extended-lambda',
-                    '-std=c++17'
+                    '-std=c++17',
+                    '-arch=sm_89',
+                    '-Xcompiler', '-fpermissive',
+                    '-Xcompiler', '-std=c++17',
+                    '-I/home/lhc/codes/hw2/cutlass/include',
+                    '-I/home/lhc/codes/hw2/cutlass/tools/util/include',
                 ]
-            }
+            },
+            extra_link_args=[
+                '-L' + torch_lib_path,
+                '-Wl,-rpath,' + torch_lib_path,
+            ],
         )
     ],
     cmdclass={'build_ext': BuildExtension}
